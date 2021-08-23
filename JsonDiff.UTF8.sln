@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonDiff.UTF8", "JsonDiff.UTF8\JsonDiff.UTF8.csproj", "{77E4674E-FC04-45BE-81C7-2FB9320CE56B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonDiff.UTF8.Tests", "JsonDiff.UTF8.Tests\JsonDiff.UTF8.Tests.csproj", "{8128619E-83A9-4CCC-8EBD-E0B5D44D5EFE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{77E4674E-FC04-45BE-81C7-2FB9320CE56B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77E4674E-FC04-45BE-81C7-2FB9320CE56B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77E4674E-FC04-45BE-81C7-2FB9320CE56B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77E4674E-FC04-45BE-81C7-2FB9320CE56B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8128619E-83A9-4CCC-8EBD-E0B5D44D5EFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8128619E-83A9-4CCC-8EBD-E0B5D44D5EFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8128619E-83A9-4CCC-8EBD-E0B5D44D5EFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8128619E-83A9-4CCC-8EBD-E0B5D44D5EFE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
