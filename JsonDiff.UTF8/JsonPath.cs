@@ -110,10 +110,30 @@ namespace JsonDiff.UTF8
                 yield return item;
             }
         }
-        
-        protected bool Equals(JsonPath other)
+
+        bool Equals(JsonPath other)
         {
-            return _stringValue == other._stringValue && _intValue == other._intValue;
+            var current = this;
+            var otherCurrent = other;
+
+            while (current != null || otherCurrent != null)
+            {
+                if (current == null || otherCurrent == null)
+                {
+                    return false;
+                }
+
+                var same = current._stringValue == otherCurrent._stringValue && current._intValue == otherCurrent._intValue;
+                if (!same)
+                {
+                    return false;
+                }
+
+                current = current._parent;
+                otherCurrent = otherCurrent._parent;
+            }
+
+            return true;
         }
 
         public override bool Equals(object? obj)
@@ -126,7 +146,16 @@ namespace JsonDiff.UTF8
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(_stringValue, _intValue);
+            var hashCode = new HashCode();
+            var current = this;
+            while (current != null)
+            {
+                hashCode.Add(current._stringValue);
+                hashCode.Add(current._intValue);
+                current = current._parent;
+            }
+
+            return hashCode.ToHashCode();
         }
     }
 }
