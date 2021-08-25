@@ -6,7 +6,7 @@ using FluentAssertions;
 using JsonDiff.UTF8.JsonTraversal;
 using NUnit.Framework;
 
-namespace JsonDiff.UTF8.Tests
+namespace JsonDiff.UTF8.Tests.JsonTraversal
 {
     [TestFixture]
     public class JsonDocumentTraversalTests
@@ -23,9 +23,11 @@ namespace JsonDiff.UTF8.Tests
                 "}");
 
             var items = new List<(JsonPath, JsonElement)>();
-            json.DepthFirstTraversal((path, element) =>
+            json.DepthFirstTraversal(context =>
             {
-                Console.WriteLine($"{path} :: {element}");
+                var path = context.Path;
+                var element = context.JsonElement;
+                Console.WriteLine($"{context.Depth} :: {path} :: {element}");
                 items.Add((path, element));
                 return JsonDocumentTraversal.TraversalNextStep.Continue;
             });

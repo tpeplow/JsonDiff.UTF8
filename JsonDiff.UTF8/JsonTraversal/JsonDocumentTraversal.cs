@@ -1,5 +1,4 @@
 using System;
-using System.Net.Sockets;
 using System.Text.Json;
 
 namespace JsonDiff.UTF8.JsonTraversal
@@ -12,15 +11,29 @@ namespace JsonDiff.UTF8.JsonTraversal
             Skip,
             Stop
         }
-        
-        public static void DepthFirstTraversal(this JsonDocument document, Func<JsonPath, JsonElement, TraversalNextStep> processElement)
+
+        public readonly struct Context
         {
-            var stack = new DepthFirstTraversalStack<(JsonPath, JsonElement)>();
-            stack.Push((JsonPath.WholeDocument, document.RootElement));
+            public Context(JsonPath path, int depth, JsonElement jsonElement)
+            {
+                Path = path;
+                Depth = depth;
+                JsonElement = jsonElement;
+            }
+
+            public JsonPath Path { get; }
+            public int Depth { get; }
+            public JsonElement JsonElement { get; }
+        }
+        
+        public static void DepthFirstTraversal(this JsonDocument document, Func<Context, TraversalNextStep> processElement)
+        {
+            var stack = new DepthFirstTraversalStack<Context>();
+            stack.Push(new Context(JsonPath.WholeDocument, 0, document.RootElement));
             while (stack.Count > 0)
             {
-                var (path, element) = stack.Pop();
-                var result = processElement(path, element);
+                var context = stack.Pop();
+                var result = processElement(context);
                 switch (result)
                 {
                     case TraversalNextStep.Skip:
@@ -29,14 +42,15 @@ namespace JsonDiff.UTF8.JsonTraversal
                         return;
                     case TraversalNextStep.Continue:
                     default:
-                        switch (element.ValueKind)
+                        switch (context.JsonElement.ValueKind)
                         {
                             case JsonValueKind.Object:
                                 using (stack.ReverseOrder())
                                 {
-                                    foreach (var item in element.EnumerateObject())
+                                    var depth = context.Depth + 1;
+                                    foreach (var item in context.JsonElement.EnumerateObject())
                                     {
-                                        stack.Push((path.CreateChild(item.Name), item.Value));
+                                        stack.Push(new Context(context.Path.CreateChild(item.Name), depth, item.Value));
                                     }
                                 }
                                 break;
@@ -44,9 +58,10 @@ namespace JsonDiff.UTF8.JsonTraversal
                                 using (stack.ReverseOrder())
                                 {
                                     var i = 0;
-                                    foreach (var item in element.EnumerateArray())
+                                    var depth = context.Depth + 1;
+                                    foreach (var item in context.JsonElement.EnumerateArray())
                                     {
-                                        stack.Push((path.CreateChild(i++), item));
+                                        stack.Push(new Context(context.Path.CreateChild(i++), depth, item));
                                     }
                                 }
                                 break;
