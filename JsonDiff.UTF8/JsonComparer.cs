@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using JsonDiff.UTF8.JsonPatch;
+using JsonDiff.UTF8.JsonTraversal;
 
 namespace JsonDiff.UTF8
 {
     public class JsonComparer
     {
-        readonly JsonComparerOptions _options;  
+        readonly JsonComparerOptions _options;
 
         public JsonComparer(JsonComparerOptions? options = null)
         {
@@ -25,12 +26,14 @@ namespace JsonDiff.UTF8
         class JsonComparision
         {
             readonly JsonComparerOptions _options;
-            readonly Queue<(JsonElement Base, JsonElement Other, JsonPath Path)> _elementQueue = new();
-            
-            public JsonComparision(JsonComparerOptions options, JsonDocument baseJsonDocument, JsonDocument otherJsonDocument)
+            readonly DepthFirstTraversalStack<(JsonElement Base, JsonElement Other, JsonPath Path)> _elementQueue = new();
+
+            public JsonComparision(JsonComparerOptions options, JsonDocument baseJsonDocument,
+                JsonDocument otherJsonDocument)
             {
                 _options = options;
-                _elementQueue.Enqueue((baseJsonDocument.RootElement, otherJsonDocument.RootElement, JsonPath.WholeDocument));
+                _elementQueue.Push(
+                    (baseJsonDocument.RootElement, otherJsonDocument.RootElement, JsonPath.WholeDocument));
             }
 
             public PatchList PatchList { get; } = new();
@@ -39,7 +42,7 @@ namespace JsonDiff.UTF8
             {
                 while (_elementQueue.Count > 0)
                 {
-                    var (baseElement, otherElement, path) = _elementQueue.Dequeue();
+                    var (baseElement, otherElement, path) = _elementQueue.Pop();
                     if (baseElement.ValueKind != otherElement.ValueKind)
                     {
                         PatchList.Add(new Replace(path, otherElement));
@@ -49,13 +52,20 @@ namespace JsonDiff.UTF8
                     switch (baseElement.ValueKind)
                     {
                         case JsonValueKind.Object:
-                            CompareObject(baseElement, otherElement, path);
+                            using (_elementQueue.ReverseOrder())
+                            {
+                                CompareObject(baseElement, otherElement, path);
+                            }
                             break;
                         case JsonValueKind.Array:
-                            CompareArray(baseElement, otherElement, path);
+                            using (_elementQueue.ReverseOrder())
+                            {
+                                CompareArray(baseElement, otherElement, path);
+                            }
                             break;
                         case JsonValueKind.String:
-                            var equals = string.Equals(baseElement.GetString(), otherElement.GetString(), _options.StringComparison);
+                            var equals = string.Equals(baseElement.GetString(), otherElement.GetString(),
+                                _options.StringComparison);
                             if (equals) continue;
                             PatchList.Add(new Replace(path, otherElement));
                             break;
@@ -80,7 +90,7 @@ namespace JsonDiff.UTF8
             void CompareObject(JsonElement baseElement, JsonElement otherElement, JsonPath path)
             {
                 var baseProperties = baseElement.EnumerateObject().ToDictionary(
-                    x => x.Name, 
+                    x => x.Name,
                     x => x.Value);
 
                 foreach (var newElement in otherElement.EnumerateObject())
@@ -90,10 +100,11 @@ namespace JsonDiff.UTF8
                     var isFound = baseProperties.TryGetValue(newElementName, out var basePropertyElement);
                     if (isFound)
                     {
-                        _elementQueue.Enqueue((basePropertyElement, newElement.Value, newElementPath));
+                        _elementQueue.Push((basePropertyElement, newElement.Value, newElementPath));
                         baseProperties.Remove(newElementName);
                         continue;
                     }
+
                     PatchList.Add(new Add(newElementPath, newElement.Value));
                 }
 
@@ -110,7 +121,8 @@ namespace JsonDiff.UTF8
                 var otherElementEnumerator = otherElement.EnumerateArray();
                 bool baseElementMovedNext;
                 bool otherElementMovedNext;
-                
+
+
                 do
                 {
                     var arrayItemPath = path.CreateChild(i);
@@ -119,7 +131,8 @@ namespace JsonDiff.UTF8
 
                     if (otherElementMovedNext && baseElementMovedNext)
                     {
-                        _elementQueue.Enqueue((baseElementEnumerator.Current, otherElementEnumerator.Current, arrayItemPath));
+                        _elementQueue.Push((baseElementEnumerator.Current, otherElementEnumerator.Current,
+                            arrayItemPath));
                     }
                     else if (otherElementMovedNext)
                     {
@@ -129,7 +142,7 @@ namespace JsonDiff.UTF8
                     {
                         PatchList.Add(new Remove(arrayItemPath));
                     }
-                    
+
                     i++;
                 } while (baseElementMovedNext || otherElementMovedNext);
             }
