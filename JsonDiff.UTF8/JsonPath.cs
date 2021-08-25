@@ -9,13 +9,13 @@ namespace JsonDiff.UTF8
     {
         public static readonly JsonPath WholeDocument = new();
         
-        readonly string _stringValue;
+        readonly string? _stringValue;
         readonly int _intValue;
         readonly JsonPath? _parent;
 
         JsonPath()
         {
-            _stringValue = string.Empty;
+            _stringValue = null;
         }
 
         JsonPath(string value)
@@ -44,7 +44,7 @@ namespace JsonDiff.UTF8
             return result;
         }
 
-        JsonPath? Parent
+        public JsonPath? Parent
         {
             get => _parent;
             init
@@ -57,19 +57,75 @@ namespace JsonDiff.UTF8
             }
         }
 
-        string Token => _stringValue == string.Empty ? _intValue.ToString() : _stringValue;
+        string Token => _stringValue == null ? string.Empty : _stringValue == string.Empty ? _intValue.ToString() : _stringValue;
+        
+        public JsonPathValueKind ValueKind =>
+            _stringValue == null ? JsonPathValueKind.Root :
+            _stringValue == string.Empty ? JsonPathValueKind.ArrayItem : JsonPathValueKind.Property;
 
         public JsonElement Evaluate(JsonDocument element)
         {
-            var current = element.RootElement;
+            InternalTryEvaluate(element, true, out var result);
+            return result;
+        }
+        
+        public bool TryEvaluate(JsonDocument document, out JsonElement result)
+        {
+            return InternalTryEvaluate(document, false, out result);
+        }
+
+        bool InternalTryEvaluate(JsonDocument document, bool throwIfNotFound, out JsonElement result)
+        {
+            JsonPath? notFound = null;
+            string message = null;
+            var current = document.RootElement;
             foreach (var item in WalkFromRoot())
             {
-                current = item._stringValue != string.Empty ? 
-                    current.GetProperty(item._stringValue) 
-                    : current[item._intValue];
+                if (item._stringValue == null) continue;
+                if (item._stringValue != string.Empty)
+                {
+                    if (current.ValueKind != JsonValueKind.Object)
+                    {
+                        notFound = item;
+                        message = $"{item} evaluated to {current.ValueKind} but should be an Object";
+                        break;
+                    }
+                    if (!current.TryGetProperty(item._stringValue, out current))
+                    {
+                        notFound = item;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (item._intValue < current.GetArrayLength())
+                    {
+                        current = current[item._intValue];
+                        continue;
+                    }
+                    notFound = item;
+                    break;
+                }
             }
 
-            return current;
+            if (notFound != null)
+            {
+                if (!throwIfNotFound)
+                {
+                    result = default;
+                    return false;
+                }
+                if (notFound.Equals(this))
+                {
+                    throw new JsonPathNotFoundException($"'{this}' could not be found.");
+                }
+
+                message ??= $"Part of path '{notFound}' could not be found in path '{this}'";
+                throw new JsonPathNotFoundException(message);
+            }
+            
+            result = current;
+            return true;
         }
         
         public JsonPath CreateChild(string token)
@@ -84,6 +140,11 @@ namespace JsonDiff.UTF8
         
         public override string ToString()
         {
+            if (ReferenceEquals(this, WholeDocument))
+            {
+                return string.Empty;
+            }
+            
             var sb = new StringBuilder();
             foreach (var token in WalkFromRoot())
             {
@@ -156,6 +217,26 @@ namespace JsonDiff.UTF8
             }
 
             return hashCode.ToHashCode();
+        }
+
+        public string GetPropertyName()
+        {
+            if (string.IsNullOrEmpty(_stringValue))
+            {
+                throw new InvalidOperationException("JsonPath leaf is not a property of an object");
+            }
+
+            return _stringValue;
+        }
+
+        public int GetArrayIndex()
+        {
+            if (!string.IsNullOrEmpty(_stringValue))
+            {
+                throw new InvalidOperationException("JsonPath leaf is not a property of an array element");
+            }
+
+            return _intValue;
         }
     }
 }

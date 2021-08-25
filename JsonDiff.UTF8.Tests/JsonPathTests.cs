@@ -1,3 +1,6 @@
+using System;
+using System.Text.Json;
+using FluentAssertions;
 using NUnit.Framework;
 
 namespace JsonDiff.UTF8.Tests
@@ -40,6 +43,13 @@ namespace JsonDiff.UTF8.Tests
         {
             AssertNotEqual(JsonPath.Parse("/Fred/2/Bob"), JsonPath.Parse("/Fred/1"));
             AssertNotEqual(JsonPath.Parse("/Fred/2"), JsonPath.Parse("/Fred/1/Bob"));
+        }
+
+        [Test]
+        public void when_path_points_to_element_outside_of_the_array()
+        {
+            Action parse = () => JsonDocument.Parse("[0, 1]").EvaluatePath("/2");
+            parse.Should().Throw<JsonPathNotFoundException>();
         }
 
         static void AssertEqual(JsonPath path1, JsonPath path2)

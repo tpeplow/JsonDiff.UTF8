@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
 using JsonDiff.UTF8.JsonPatch;
 using NUnit.Framework;
 
@@ -204,7 +202,7 @@ namespace JsonDiff.UTF8.Tests
             Assert.AreEqual(operation, Result[operation.Path]);
         }
         
-        Dictionary<JsonPath, Operation> Result { get; set; }
+        PatchList Result { get; set; }
         JsonDocument OtherJsonDocument { get; set; }
         JsonDocument BaseJsonDocument { get; set; }
         
@@ -212,10 +210,8 @@ namespace JsonDiff.UTF8.Tests
         {
             BaseJsonDocument = JsonDocument.Parse(baseJson);
             OtherJsonDocument = JsonDocument.Parse(otherJson);
-            
-            Result = BaseJsonDocument
-                .CompareWith(OtherJsonDocument)
-                .ToDictionary(x => x.Path);
+
+            Result = BaseJsonDocument.CompareWith(OtherJsonDocument);
         }
     }
 }
