@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.IO;
+using System.Text.Json;
+using FluentAssertions;
 using JsonDiff.UTF8.JsonPatch;
 using NUnit.Framework;
 
@@ -212,6 +214,21 @@ namespace JsonDiff.UTF8.Tests
             OtherJsonDocument = JsonDocument.Parse(otherJson);
 
             Result = BaseJsonDocument.CompareWith(OtherJsonDocument);
+
+            ApplyPatchToBaseAndAssertItMatchesOther();
+        }
+
+        void ApplyPatchToBaseAndAssertItMatchesOther()
+        {
+            var stream = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(stream))
+            {
+                Result.ApplyPatch(BaseJsonDocument, writer);
+            }
+
+            stream.Position = 0;
+            var patchedDocument = JsonDocument.Parse(stream);
+            patchedDocument.CompareWith(OtherJsonDocument).Count.Should().Be(0);
         }
     }
 }
