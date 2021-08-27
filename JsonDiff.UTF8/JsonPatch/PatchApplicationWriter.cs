@@ -49,6 +49,10 @@ namespace JsonDiff.UTF8.JsonPatch
                 }
                 else if (_patchList.IsCurrentElementOrChildPatched(context.Path))
                 {
+                    if (context.Path.ValueKind is JsonPathValueKind.Property)
+                    {
+                        writer.WritePropertyName(context.Path.GetPropertyName());
+                    }
                     var token = WriteBeginToken(context);
                     foreach (var added in _patchList.GetAddedElements(context.Path))
                     {
@@ -99,7 +103,7 @@ namespace JsonDiff.UTF8.JsonPatch
                     var endToken = endTokens.Pop();
                     if (endToken.Element.ValueKind == JsonValueKind.Array)
                     {
-                        var arrayLength = prior.JsonElement.GetArrayLength();
+                        var arrayLength = endToken.Element.GetArrayLength();
                         var sorted = endToken.AddedItems
                             .Select(x => (x.Value, Index: x.Path.GetArrayIndex()))
                             .OrderBy(x => x.Index);

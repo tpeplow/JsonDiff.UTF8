@@ -61,6 +61,28 @@ namespace JsonDiff.UTF8.Tests.JsonPatch
         }
 
         [Test]
+        public void when_removing_a_property_value_from_an_object()
+        {
+            var patched = Patch("{ \"a\" : 10, \"b\" : { \"c\" : 20 } }", new PatchList()
+            {
+                new Remove(JsonPath.Parse("/b/c"))
+            });
+
+            JsonPath.Parse("/a/b").TryEvaluate(patched, out _).Should().BeFalse();
+        }
+        
+        [Test]
+        public void when_replacing_a_property_value_from_a_child_object()
+        {
+            var patched = Patch("{ \"a\" : 10, \"b\" : { \"c\" : 20 } }", new PatchList()
+            {
+                new Replace(JsonPath.Parse("/b/c"), JsonDocument.Parse("30").RootElement)
+            });
+
+            patched.EvaluatePath("/b/c").GetInt32().Should().Be(30);
+        }
+
+        [Test]
         public void when_removing_an_item_from_an_array()
         {
             var patched = Patch("[0, 1]", new PatchList
@@ -126,6 +148,17 @@ namespace JsonDiff.UTF8.Tests.JsonPatch
 
             patched.EvaluatePath("/b").GetInt32().Should().Be(100);
             patched.RootElement.EnumerateObject().Select(x => x.Name).Should().Equal("a", "b");
+        }
+
+        [Test]
+        public void when_array_is_empty_after_all_removals()
+        {
+            var patched = Patch("{\"a\" : 1, \"b\": [0] }", new PatchList
+            {
+                new Remove(JsonPath.Parse("/b/0"))
+            });
+
+            patched.EvaluatePath("/b").GetArrayLength().Should().Be(0);
         }
 
         public JsonDocument Patch(string json, PatchList patchList)
