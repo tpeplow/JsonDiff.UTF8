@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace JsonDiff.UTF8.JsonTraversal
@@ -45,25 +46,27 @@ namespace JsonDiff.UTF8.JsonTraversal
                         switch (context.JsonElement.ValueKind)
                         {
                             case JsonValueKind.Object:
-                                using (stack.ReverseOrder())
+                                IEnumerable<Context> PushObjectProperties()
                                 {
                                     var depth = context.Depth + 1;
                                     foreach (var item in context.JsonElement.EnumerateObject())
                                     {
-                                        stack.Push(new Context(context.Path.CreateChild(item.Name), depth, item.Value));
+                                        yield return new Context(context.Path.CreateChild(item.Name), depth, item.Value);
                                     }
                                 }
+                                stack.PushReversed(PushObjectProperties);
                                 break;
                             case JsonValueKind.Array:
-                                using (stack.ReverseOrder())
+                                IEnumerable<Context> PushArrayElements()
                                 {
                                     var i = 0;
                                     var depth = context.Depth + 1;
                                     foreach (var item in context.JsonElement.EnumerateArray())
                                     {
-                                        stack.Push(new Context(context.Path.CreateChild(i++), depth, item));
+                                        yield return new Context(context.Path.CreateChild(i++), depth, item);
                                     }
                                 }
+                                stack.PushReversed(PushArrayElements);
                                 break;
                             case JsonValueKind.String:
                             case JsonValueKind.Number:
