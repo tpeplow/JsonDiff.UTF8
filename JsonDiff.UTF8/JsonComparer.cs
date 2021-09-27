@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using JsonDiff.UTF8.JsonPatch;
 using JsonDiff.UTF8.JsonTraversal;
@@ -27,6 +26,7 @@ namespace JsonDiff.UTF8
         {
             readonly JsonComparerOptions _options;
             readonly DepthFirstTraversalStack<(JsonElement Base, JsonElement Other, JsonPath Path)> _elementQueue = new();
+            readonly Dictionary<string, JsonElement> _objectElements = new();
 
             public JsonComparision(JsonComparerOptions options, JsonDocument baseJsonDocument,
                 JsonDocument otherJsonDocument)
@@ -81,29 +81,32 @@ namespace JsonDiff.UTF8
 
             IEnumerable<(JsonElement basePropertyElement, JsonElement Value, JsonPath newElementPath)> CompareObject(JsonElement baseElement, JsonElement otherElement, JsonPath path)
             {
-                var baseProperties = baseElement.EnumerateObject().ToDictionary(
-                    x => x.Name,
-                    x => x.Value);
-
+                foreach (var item in baseElement.EnumerateObject())
+                {
+                    _objectElements.Add(item.Name, item.Value);
+                }
+                
                 foreach (var newElement in otherElement.EnumerateObject())
                 {
                     var newElementName = newElement.Name;
                     var newElementPath = path.CreateChild(newElementName);
-                    var isFound = baseProperties.TryGetValue(newElementName, out var basePropertyElement);
+                    var isFound = _objectElements.TryGetValue(newElementName, out var basePropertyElement);
                     if (isFound)
                     {
                         yield return (basePropertyElement, newElement.Value, newElementPath);
-                        baseProperties.Remove(newElementName);
+                        _objectElements.Remove(newElementName);
                         continue;
                     }
 
                     PatchList.Add(new Add(newElementPath, newElement.Value));
                 }
 
-                foreach (var removed in baseProperties)
+                foreach (var removed in _objectElements)
                 {
                     PatchList.Add(new Remove(path.CreateChild(removed.Key)));
                 }
+                
+                _objectElements.Clear();
             }
 
             IEnumerable<(JsonElement, JsonElement, JsonPath arrayItemPath)> CompareArray(JsonElement baseElement, JsonElement otherElement, JsonPath path)
