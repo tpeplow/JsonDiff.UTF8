@@ -240,5 +240,49 @@ namespace JsonDiff.UTF8
 
             return _intValue;
         }
+
+        public bool IsChild(JsonPath otherPath)
+        {
+            if (otherPath.Equals(WholeDocument)) return true;
+            
+            var currentParent = Parent;
+            while (currentParent != null)
+            {
+                if (otherPath.Equals(currentParent))
+                {
+                    return true;
+                }
+
+                currentParent = currentParent.Parent;
+            }
+
+            return false;
+        }
+
+        public (JsonPath? Parent, int Distance) GetLowestCommonAncestor(JsonPath otherPath)
+        {
+            var otherParents = new HashSet<JsonPath>();
+            var parent = otherPath;
+            while (parent != null)
+            {
+                otherParents.Add(parent);
+                parent = parent.Parent;
+            }
+
+            parent = this;
+            var distance = 0;
+            while (parent != null)
+            {
+                if (otherParents.Contains(parent))
+                {
+                    return (parent, distance);
+                }
+
+                distance++;
+                parent = parent.Parent;
+            }
+
+            return (WholeDocument, distance);
+        }
     }
 }

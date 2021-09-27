@@ -52,6 +52,59 @@ namespace JsonDiff.UTF8.Tests
             parse.Should().Throw<JsonPathNotFoundException>();
         }
 
+        [Test]
+        public void when_root_is_parent()
+        {
+            var path = JsonPath.Parse("/a");
+            path.IsChild(JsonPath.WholeDocument).Should().Be(true);
+            var (parent, distance) = path.GetLowestCommonAncestor(JsonPath.WholeDocument);
+            parent.Should().Be(JsonPath.WholeDocument);
+            distance.Should().Be(1);
+        }
+        
+        [Test]
+        public void when_item_is_parent()
+        {
+            var path = JsonPath.Parse("/a/b");
+            var child = path.CreateChild("c");
+            child.IsChild(path).Should().Be(true);
+        }
+
+        [Test]
+        public void when_item_is_grand_parent()
+        {
+            var path = JsonPath.Parse("/a/b");
+            var child = path.CreateChild("c").CreateChild("d");
+            child.IsChild(path).Should().Be(true);
+
+            var (parent, distance) = child.GetLowestCommonAncestor(path);
+            parent.Should().Be(child.Parent!.Parent);
+            distance.Should().Be(2);
+        }
+
+        [Test]
+        public void when_item_is_not_a_child()
+        {
+            var path = JsonPath.Parse("/a/b");
+            var c = path.CreateChild("c");
+            var d = path.CreateChild("d");
+            var e = path.Parent!.CreateChild("e");
+
+            d.IsChild(c).Should().Be(false);
+
+            var (parent, distance) = d.GetLowestCommonAncestor(c);
+            parent.Should().Be(path);
+            distance.Should().Be(1);
+
+            (parent, distance) = c.GetLowestCommonAncestor(d);
+            parent.Should().Be(path);
+            distance.Should().Be(1);
+            
+            (parent, distance) = e.GetLowestCommonAncestor(c);
+            parent.Should().Be(path.Parent);
+            distance.Should().Be(1);
+        }
+        
         static void AssertEqual(JsonPath path1, JsonPath path2)
         {
             Assert.That(path1, Is.EqualTo(path2));
