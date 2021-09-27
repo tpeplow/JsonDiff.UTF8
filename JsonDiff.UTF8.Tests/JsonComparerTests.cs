@@ -161,6 +161,17 @@ namespace JsonDiff.UTF8.Tests
             AssertAdded("/0/Different");
         }
 
+        [Test]
+        public void when_every_property_has_been_modified()
+        {
+            var baseJson = File.ReadAllText("different.base.json");
+            var otherJson = File.ReadAllText("different.other.json");
+            
+            Compare(baseJson, otherJson);
+            
+            AssertCount(129);
+        }
+
         void AssertMatch()
         {
             Assert.That(Result.Count, Is.EqualTo(0));

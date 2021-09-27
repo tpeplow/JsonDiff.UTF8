@@ -11,6 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\JsonDiff.UTF8.Benchmarks\JsonDiff.UTF8.Benchmarks.csproj" />
       <ProjectReference Include="..\JsonDiff.UTF8\JsonDiff.UTF8.csproj" />
     </ItemGroup>
 
