@@ -172,10 +172,12 @@ namespace JsonDiff.UTF8
             }
         }
 
-        bool Equals(JsonPath other)
+        bool Equals(JsonPath? other)
         {
             var current = this;
             var otherCurrent = other;
+            
+            if (ReferenceEquals(current, otherCurrent)) return true;
 
             while (current != null || otherCurrent != null)
             {
