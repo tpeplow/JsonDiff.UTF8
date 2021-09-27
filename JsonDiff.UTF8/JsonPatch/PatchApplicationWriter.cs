@@ -18,7 +18,6 @@ namespace JsonDiff.UTF8.JsonPatch
         public void Patch(JsonDocument jsonDocument, Utf8JsonWriter writer)
         {
             var endTokens = new Stack<EndToken>();
-            JsonDocumentTraversal.Context prior = default;
             
             jsonDocument.DepthFirstTraversal(ProcessElement);
             
@@ -26,9 +25,14 @@ namespace JsonDiff.UTF8.JsonPatch
             
             JsonDocumentTraversal.TraversalNextStep ProcessElement(JsonDocumentTraversal.Context context)
             {
-                if (context.Depth < prior.Depth)
+                if (endTokens.Count > 0)
                 {
-                    WriteEndTokens(prior.Depth - context.Depth);
+                    var prior = endTokens.Peek();
+                    if (!context.Path.IsChild(prior.Path))
+                    {
+                        var (_, distance) = prior.Path.GetLowestCommonAncestor(context.Path);
+                        WriteEndTokens(distance);
+                    }
                 }
 
                 if (_patchList.TryGetPatch(context.Path, out var patch))
@@ -45,7 +49,6 @@ namespace JsonDiff.UTF8.JsonPatch
                             endTokens.Peek().Remove(add);
                             return JsonDocumentTraversal.TraversalNextStep.Skip;
                     }
-                    
                 }
                 else if (_patchList.IsCurrentElementOrChildPatched(context.Path))
                 {
@@ -68,9 +71,8 @@ namespace JsonDiff.UTF8.JsonPatch
 
             EndToken WriteBeginToken(JsonDocumentTraversal.Context context)
             {
-                prior = context;
                 var valueKind = context.JsonElement.ValueKind;
-                var endToken = new EndToken(context.JsonElement);
+                var endToken = new EndToken(context.JsonElement, context.Path);
                 endTokens.Push(endToken);
                 switch (valueKind)
                 {
@@ -134,12 +136,14 @@ namespace JsonDiff.UTF8.JsonPatch
         {
             readonly Dictionary<JsonPath, Add> _addedElements = new();
             
-            public EndToken(JsonElement jsonElement)
+            public EndToken(JsonElement jsonElement, JsonPath path)
             {
                 Element = jsonElement;
+                Path = path;
             }
 
             public JsonElement Element { get; }
+            public JsonPath Path { get; }
 
             public IEnumerable<Add> AddedItems => _addedElements.Values;
             
