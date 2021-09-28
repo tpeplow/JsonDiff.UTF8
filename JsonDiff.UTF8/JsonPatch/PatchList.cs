@@ -15,6 +15,17 @@ namespace JsonDiff.UTF8.JsonPatch
         readonly Dictionary<JsonPath, List<Add>> _addOperations = new();
         readonly HashSet<JsonPath> _patchedPaths = new();
 
+        public PatchList()
+        {
+        }
+
+        public PatchList(PatchList other)
+        {
+            _inPlaceOperations = new Dictionary<JsonPath, Operation>(other._inPlaceOperations);
+            _addOperations = new Dictionary<JsonPath, List<Add>>(other._addOperations);
+            _patchedPaths = new HashSet<JsonPath>(other._patchedPaths);
+        }
+        
         public void Add(Operation operation)
         {
             switch (operation)
@@ -51,6 +62,22 @@ namespace JsonDiff.UTF8.JsonPatch
         {
             if (Equals(path, JsonPath.WholeDocument) && Count > 0) return true;
             return _inPlaceOperations.ContainsKey(path) || _patchedPaths.Contains(path) || _addOperations.ContainsKey(path);
+        }
+
+        public bool TryGetExistingPatch(JsonPath path, [MaybeNullWhen(false)]out Operation operation)
+        {
+            var pathToTest = path;
+            while (pathToTest != null)
+            {
+                if (_inPlaceOperations.TryGetValue(pathToTest, out operation))
+                {
+                    return true;
+                }
+                pathToTest = pathToTest.Parent;
+            }
+
+            operation = null;
+            return false;
         }
 
         public bool TryGetPatch(JsonPath path, [MaybeNullWhen(false)]out Operation operation)
