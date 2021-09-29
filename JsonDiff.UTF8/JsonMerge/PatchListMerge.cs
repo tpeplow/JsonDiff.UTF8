@@ -12,7 +12,7 @@ namespace JsonDiff.UTF8.JsonMerge
 
             return leftPatch.TryMerge(rightPatch);
         }
-        
+
         public static MergeResult TryMerge(this PatchList left, PatchList right)
         {
             var patchList = new PatchList(left);
@@ -22,15 +22,27 @@ namespace JsonDiff.UTF8.JsonMerge
             {
                 if (left.TryGetExistingPatch(patch.Path, out var otherOperation))
                 {
-                    mergeResult.AddConflict(patch, otherOperation);
+                    if (!CanIgnoreConflict(patch, otherOperation))
+                    {
+                        mergeResult.AddConflict(patch, otherOperation);
+                    }
+                    continue;
                 }
-                else
-                {
-                    patchList.Add(patch);
-                }
+
+                patchList.Add(patch);
             }
 
             return mergeResult;
+        }
+
+        static bool CanIgnoreConflict(Operation patch, Operation otherOperation)
+        {
+            if (patch.Path.Equals(otherOperation.Path) && patch is Remove && otherOperation is Remove)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

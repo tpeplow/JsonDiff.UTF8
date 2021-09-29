@@ -126,6 +126,38 @@ namespace JsonDiff.UTF8.Tests.JsonMerge
         }
 
         [Test]
+        public void when_the_same_item_is_removed()
+        {
+            var left = new PatchList
+            {
+                new Remove(JsonPath.Parse("/a")),
+            };
+            var right = new PatchList
+            {
+                new Remove(JsonPath.Parse("/a")),
+            };
+            
+            var merged = left.TryMerge(right);
+            merged.Success.Should().Be(true);
+        }
+        
+        [Test]
+        public void when_a_specific_item_is_removed_from_a_removed_parent()
+        {
+            var left = new PatchList
+            {
+                new Remove(JsonPath.Parse("/a")),
+            };
+            var right = new PatchList
+            {
+                new Remove(JsonPath.Parse("/a/0")),
+            };
+            
+            var merged = left.TryMerge(right);
+            merged.Success.Should().Be(false);
+        }
+
+        [Test]
         public void when_three_way_merging()
         {
             ThreeWayMerge(
