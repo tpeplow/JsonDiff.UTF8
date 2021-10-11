@@ -7,62 +7,50 @@ namespace JsonDiff.UTF8
     {
         public static bool IsEqual(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
         {
-            bool isEqual;
-            int leftEnd = 0;
-            int rightEnd = 0;
-            do
-            {
-                var leftWithoutWhitespace = ReadToNextWhitespace(left, ref leftEnd);
-                var rightWithoutWhitespace = ReadToNextWhitespace(right, ref rightEnd);
+            var leftWithoutWhitespace = GetWithoutWhitespace(left);
+            var rightWithoutWhitespace = GetWithoutWhitespace(right);
 
-                isEqual = leftWithoutWhitespace.SequenceEqual(rightWithoutWhitespace);
-            } while (isEqual && leftEnd < left.Length && rightEnd < right.Length);
+            var isEqual = MemoryExtensions.SequenceEqual(
+                new ReadOnlySpan<char>(leftWithoutWhitespace.chars, 0, leftWithoutWhitespace.end),
+                new ReadOnlySpan<char>(rightWithoutWhitespace.chars, 0, rightWithoutWhitespace.end));
+            
+            ArrayPool<char>.Shared.Return(leftWithoutWhitespace.chars, true);
+            ArrayPool<char>.Shared.Return(rightWithoutWhitespace.chars, true);
 
             return isEqual;
         }
 
-        static ReadOnlySpan<char> ReadToNextWhitespace(ReadOnlySpan<char> chars, ref int end)
+        static (char[] chars, int end) GetWithoutWhitespace(ReadOnlySpan<char> chars)
         {
+            var newChars = ArrayPool<char>.Shared.Rent(chars.Length);
+
             var insideQuote = false;
-            var startAt = end;
-            var length = 0;
-            var foundNonWhitespaceChar = false;
-            var foundWhitespace = false;
-            for (var i = startAt; i < chars.Length; i++)
+            var y = 0;
+            for (var i = 0; i < chars.Length; i++)
             {
                 var c = chars[i];
 
-                if (!insideQuote && char.IsWhiteSpace(c))
+                if (!insideQuote)
                 {
-                    foundWhitespace = true;
-                    if (foundNonWhitespaceChar)
+                    if (char.IsWhiteSpace(c))
                     {
-                        break;
+                        continue;
                     }
-
-                    startAt = i;
-                }
-                else if (foundWhitespace)
-                {
-                    break;
-                }
-                else
-                {
-                    foundNonWhitespaceChar = true;
-                    if (c == '"')
-                    {
-                        if (i == 0 || chars[i - 1] != '\\')
-                        {
-                            insideQuote = !insideQuote;
-                        }
-                    }
-                    length++;
                 }
 
-                end++;
+                if (c == '"')
+                {
+                    if (i == 0 || chars[i - 1] != '\\')
+                    {
+                        insideQuote = !insideQuote;
+                    }
+                }
+
+                newChars[y] = c;
+                y++;
             }
-           
-            return !foundNonWhitespaceChar ? ReadOnlySpan<char>.Empty : chars.Slice(startAt, length);
+
+            return (newChars, y);
         }
     }
 }
