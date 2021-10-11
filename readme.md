@@ -6,7 +6,17 @@ This library was created as as an alternative to the more complete [jsondiffpatc
 
 # Usage
 
-## Diff
+## Diff - from text:
+```
+var left = @"{ ""key"": false }";
+var right = @"{ ""key"": true }";
+
+PatchList path = JsonComparer.Compare(left.AsMemory(), right.AsMemory());
+```
+
+**Note** `JsonComparer` compares the memory first, and only if not equal will it parse and walk the JSON document looking for differences.
+
+## Diff - given JsonDocument already parsed
 
 Generate a patch list given two JSON documents:
 
@@ -36,17 +46,20 @@ left.CompareWith(right)
 This libaries usage of .NET 5 `System.Text.Json` primites offer a performance improvement over the [jsondiffpatch.net](https://github.com/wbish/jsondiffpatch.net) implementation:
 
 ```
-|                                          Method |             Categories |        Mean |      Error |     StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 | Allocated |
-|------------------------------------------------ |----------------------- |------------:|-----------:|-----------:|------:|--------:|---------:|---------:|----------:|
-|                         UTF8Diff_HasDifferences |                   Diff |    89.23 us |   0.872 us |   0.773 us |  0.02 |    0.00 |  13.6719 |   1.0986 |     84 KB |
-|                    JsonPatchDiff_HasDifferences |                   Diff | 5,203.79 us | 103.153 us | 105.931 us |  1.00 |    0.00 | 250.0000 |  62.5000 |  1,570 KB |
-|                                                 |                        |             |            |            |       |         |          |          |           |
-|                             UTF8Diff_ApplyPatch |            Apply Patch |   125.23 us |   1.589 us |   1.486 us |  0.20 |    0.00 |  12.4512 |   1.2207 |     78 KB |
-|                        JsonPatchDiff_ApplyPatch |            Apply Patch |   619.95 us |  10.119 us |   9.465 us |  1.00 |    0.00 |  77.1484 |  18.5547 |    478 KB |
-|                                                 |                        |             |            |            |       |         |          |          |           |
-|                          UTF8Diff_NoDifferences |         No differences |    74.07 us |   1.157 us |   1.082 us |  6.40 |    0.12 |  11.1084 |   0.1221 |     68 KB |
-|                     JsonPatchDiff_NoDifferences |         No differences |    11.58 us |   0.139 us |   0.123 us |  1.00 |    0.00 |   0.4883 |        - |      3 KB |
-|                                                 |                        |             |            |            |       |         |          |          |           |
-|      IncludesJsonParsing_UTF8Diff_NoDifferences | Parse + no differences |   163.04 us |   1.922 us |   1.605 us |  0.03 |    0.00 |  20.0195 |   3.9063 |    124 KB |
-| IncludesJsonParsing_JsonPatchDiff_NoDifferences | Parse + no differences | 5,808.24 us |  53.617 us |  47.530 us |  1.00 |    0.00 | 281.2500 | 109.3750 |  1,765 KB |
+|                                          Method |             Categories |        Mean |      Error |    StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |   Allocated |
+|------------------------------------------------ |----------------------- |------------:|-----------:|----------:|------:|--------:|---------:|---------:|------------:|
+|                         UTF8Diff_HasDifferences |                   Diff |    94.49 us |   1.889 us |  1.855 us |  0.02 |    0.00 |  13.6719 |   1.0986 |    85,800 B |
+|                    JsonPatchDiff_HasDifferences |                   Diff | 5,447.68 us |  78.325 us | 73.265 us |  1.00 |    0.00 | 250.0000 |  62.5000 | 1,607,548 B |
+|                                                 |                        |             |            |           |       |         |          |          |             |
+|                   UTF8Diff_Parse_HasDifferences |           Parse + Diff |   191.31 us |   2.159 us |  2.019 us |  0.03 |    0.00 |  20.0195 |   3.6621 |   127,016 B |
+|              JsonPatchDiff_Parse_HasDifferences |           Parse + Diff | 5,715.38 us | 105.890 us | 93.869 us |  1.00 |    0.00 | 281.2500 | 109.3750 | 1,807,396 B |
+|                                                 |                        |             |            |           |       |         |          |          |             |
+|                             UTF8Diff_ApplyPatch |            Apply Patch |   130.92 us |   2.566 us |  2.746 us |  0.20 |    0.01 |  12.4512 |   1.2207 |    79,608 B |
+|                        JsonPatchDiff_ApplyPatch |            Apply Patch |   644.88 us |  12.762 us | 20.242 us |  1.00 |    0.00 |  77.1484 |  18.5547 |   488,969 B |
+|                                                 |                        |             |            |           |       |         |          |          |             |
+|                          UTF8Diff_NoDifferences |         No differences |    75.68 us |   1.384 us |  1.699 us |  6.25 |    0.24 |  11.1084 |   0.1221 |    70,080 B |
+|                     JsonPatchDiff_NoDifferences |         No differences |    12.09 us |   0.239 us |  0.327 us |  1.00 |    0.00 |   0.4883 |        - |     3,072 B |
+|                                                 |                        |             |            |           |       |         |          |          |             |
+|      IncludesJsonParsing_UTF8Diff_NoDifferences | Parse + no differences |    21.67 us |   0.428 us |  0.440 us |  0.11 |    0.00 |   0.0305 |        - |       272 B |
+| IncludesJsonParsing_JsonPatchDiff_NoDifferences | Parse + no differences |   194.36 us |   3.612 us |  4.300 us |  1.00 |    0.00 |  27.5879 |   9.0332 |   173,936 B |
 ```
