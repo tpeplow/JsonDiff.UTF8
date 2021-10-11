@@ -10,6 +10,20 @@ namespace JsonDiff.UTF8
     {
         readonly JsonComparerOptions _options;
 
+        public static PatchList Compare(ReadOnlyMemory<char> left, ReadOnlyMemory<char> right, JsonComparerOptions? options = null)
+        {
+            var textEquals = JsonTextComparer.IsEqual(left.Span, right.Span);
+            if (textEquals)
+            {
+                return new PatchList();
+            }
+
+            var leftDocument = JsonDocument.Parse(left);
+            var rightDocument = JsonDocument.Parse(right);
+
+            return leftDocument.CompareWith(rightDocument, options);
+        }
+        
         public JsonComparer(JsonComparerOptions? options = null)
         {
             _options = options ?? new JsonComparerOptions();
