@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
@@ -10,6 +11,7 @@ namespace JsonDiff.UTF8.Benchmarks
     {
         const string ApplyPatch = "Apply Patch";
         const string Diff = "Diff";
+        const string ParseDiff = "Parse + Diff";
         const string NoDifferences = "No differences";
         const string NoDifferencesParseJson = "Parse + no differences";
         
@@ -44,13 +46,26 @@ namespace JsonDiff.UTF8.Benchmarks
         {
             _utf8DiffGenerator.PerformDiff();
         }
-
+        
         [BenchmarkCategory(Diff), Benchmark(Baseline = true)]
         public void JsonPatchDiff_HasDifferences()
         {
             _jsonDiffGenerator.PerformDiff();
         }
-
+        
+        [BenchmarkCategory(ParseDiff), Benchmark]
+        public void UTF8Diff_Parse_HasDifferences()
+        {
+            JsonComparer.Compare(_baseJson.AsMemory(), _otherJson.AsMemory());
+        }
+        
+        [BenchmarkCategory(ParseDiff), Benchmark(Baseline = true)]
+        public void JsonPatchDiff_Parse_HasDifferences()
+        {
+            _jsonDiffGenerator.Setup(_baseJson, _otherJson);
+            _jsonDiffGenerator.PerformDiff();
+        }
+        
         [BenchmarkCategory(ApplyPatch), Benchmark]
         public void UTF8Diff_ApplyPatch()
         {
@@ -68,7 +83,7 @@ namespace JsonDiff.UTF8.Benchmarks
         {
             _utf8DiffGeneratorNoDifferences.PerformDiff();
         }
-
+        
         [BenchmarkCategory(NoDifferences), Benchmark(Baseline = true)]
         public void JsonPatchDiff_NoDifferences()
         {
@@ -80,7 +95,7 @@ namespace JsonDiff.UTF8.Benchmarks
         {
             JsonComparer.Compare(_baseJson.AsMemory(), _baseJson.AsMemory());
         }
-
+        
         [BenchmarkCategory(NoDifferencesParseJson), Benchmark(Baseline = true)]
         public void IncludesJsonParsing_JsonPatchDiff_NoDifferences()
         {
