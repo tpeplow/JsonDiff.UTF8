@@ -85,7 +85,7 @@ namespace JsonDiff.UTF8.Benchmarks
         [BenchmarkCategory(NoDifferencesParseJson), Benchmark(Baseline = true)]
         public void IncludesJsonParsing_JsonPatchDiff_NoDifferences()
         {
-            _jsonDiffGeneratorNoDifferences.Setup(_baseJson, _otherJson);
+            _jsonDiffGeneratorNoDifferences.Setup(_baseJson, _baseJson);
             _jsonDiffGeneratorNoDifferences.PerformDiff();
         }
     }
