@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using System.Text.Json;
 using FluentAssertions;
 using JsonDiff.UTF8.JsonPatch;
@@ -171,6 +172,32 @@ namespace JsonDiff.UTF8.Tests
             
             AssertCount(129);
         }
+        
+        [Test]
+        public void when_every_property_has_been_modified_and_producing_diff_match_patch()
+        {
+            var baseJson = File.ReadAllText("different.base.json");
+            var otherJson = File.ReadAllText("different.other.json");
+            
+            Compare(baseJson, otherJson, new JsonComparerOptions { UseDiffMatchPatchForStrings = true });
+            
+            AssertCount(129);
+        }
+
+        [Test]
+        public void when_string_property_is_different_and_producing_diff_match_patch()
+        {
+            Compare(
+                "[{ \"Property\" : \"123456789\" }]", 
+                "[{ \"Property\" : \"123ABC789\" }]",
+                new JsonComparerOptions
+                {
+                    UseDiffMatchPatchForStrings = true
+                });
+
+            var replace = (PatchText)Result.Single();
+            DiffMatchPatch.PatchList.ToText(replace.Patches).Should().Be("@@ -1,9 +1,9 @@\n 123\n-456\n+ABC\n 789\n");
+        }
 
         void AssertMatch()
         {
@@ -219,12 +246,13 @@ namespace JsonDiff.UTF8.Tests
         JsonDocument OtherJsonDocument { get; set; }
         JsonDocument BaseJsonDocument { get; set; }
         
-        void Compare(string baseJson, string otherJson)
+        void Compare(string baseJson, string otherJson, JsonComparerOptions options = null)
         {
+            options ??= new JsonComparerOptions { UseDiffMatchPatchForStrings = false };
             BaseJsonDocument = JsonDocument.Parse(baseJson);
             OtherJsonDocument = JsonDocument.Parse(otherJson);
 
-            Result = BaseJsonDocument.CompareWith(OtherJsonDocument);
+            Result = BaseJsonDocument.CompareWith(OtherJsonDocument, options);
 
             ApplyPatchToBaseAndAssertItMatchesOther();
         }

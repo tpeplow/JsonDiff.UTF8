@@ -51,6 +51,7 @@ namespace JsonDiff.UTF8.JsonPatch
                     break;
                 case Remove:
                 case Replace:
+                case PatchText:
                     _inPlaceOperations.Add(operation.Path, operation);
                     break;
             }

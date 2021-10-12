@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
+using DiffMatchPatch;
 using JsonDiff.UTF8.JsonTraversal;
 
 namespace JsonDiff.UTF8.JsonPatch
@@ -47,6 +49,19 @@ namespace JsonDiff.UTF8.JsonPatch
                         case Add add:
                             WriteElement(add.Value, context.Path);
                             endTokens.Peek().Remove(add);
+                            return JsonDocumentTraversal.TraversalNextStep.Skip;
+                        case PatchText patchText:
+                            if (context.Path.ValueKind == JsonPathValueKind.Property)
+                            {
+                                writer.WritePropertyName(context.Path.GetPropertyName());
+                            }
+                            var toPatch = context.JsonElement.GetString();
+                            var patchResult = patchText.Patches.Apply(toPatch);
+                            if (patchResult.results.Any(x => x == false))
+                            {
+                                throw new InvalidOperationException("Merge conflict applying patch");
+                            }
+                            writer.WriteStringValue(patchResult.newText);
                             return JsonDocumentTraversal.TraversalNextStep.Skip;
                     }
                 }

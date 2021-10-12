@@ -5,4 +5,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="google-diff-match-patch" Version="1.1.27" />
+    </ItemGroup>
+
 </Project>

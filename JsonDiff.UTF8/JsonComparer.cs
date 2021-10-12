@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading.Tasks.Dataflow;
+using DiffMatchPatch;
 using JsonDiff.UTF8.JsonPatch;
 using JsonDiff.UTF8.JsonTraversal;
+using PatchList = JsonDiff.UTF8.JsonPatch.PatchList;
 
 namespace JsonDiff.UTF8
 {
@@ -71,8 +74,19 @@ namespace JsonDiff.UTF8
                             _elementQueue.PushReversed(() => CompareArray(baseElement, otherElement, path));
                             break;
                         case JsonValueKind.String:
-                            var equals = string.Equals(baseElement.GetString(), otherElement.GetString(), _options.StringComparison);
+                            var baseElementString = baseElement.GetString();
+                            var otherElementString = otherElement.GetString();
+                            var equals = string.Equals(baseElementString, otherElementString, _options.StringComparison);
                             if (equals) continue;
+                            if (_options.UseDiffMatchPatchForStrings)
+                            {
+                                var patches = Patch.Compute(baseElementString, otherElementString);
+                                if (patches is { Count: > 0 })
+                                {
+                                    PatchList.Add(new PatchText(path, patches));
+                                    break;
+                                }
+                            }
                             PatchList.Add(new Replace(path, otherElement));
                             break;
                         case JsonValueKind.Number:
