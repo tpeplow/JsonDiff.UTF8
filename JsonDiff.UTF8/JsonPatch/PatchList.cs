@@ -14,9 +14,15 @@ namespace JsonDiff.UTF8.JsonPatch
         readonly Dictionary<JsonPath, Operation> _inPlaceOperations = new();
         readonly Dictionary<JsonPath, List<Add>> _addOperations = new();
         readonly HashSet<JsonPath> _patchedPaths = new();
-
+        readonly JsonDocument[] _ownerDocuments;
+        
         public PatchList()
         {
+        }
+
+        public PatchList(JsonDocument baseDocument, JsonDocument otherDocument)
+        {
+            _ownerDocuments = new [] { baseDocument, otherDocument };
         }
 
         public PatchList(PatchList other)
@@ -24,6 +30,7 @@ namespace JsonDiff.UTF8.JsonPatch
             _inPlaceOperations = new Dictionary<JsonPath, Operation>(other._inPlaceOperations);
             _addOperations = new Dictionary<JsonPath, List<Add>>(other._addOperations);
             _patchedPaths = new HashSet<JsonPath>(other._patchedPaths);
+            _ownerDocuments = other._ownerDocuments;
         }
         
         public void Add(Operation operation)

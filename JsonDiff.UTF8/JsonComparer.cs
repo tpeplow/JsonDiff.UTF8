@@ -42,14 +42,14 @@ namespace JsonDiff.UTF8
             readonly DepthFirstTraversalStack<(JsonElement Base, JsonElement Other, JsonPath Path)> _elementQueue = new();
             readonly Dictionary<string, JsonElement> _objectElements = new();
 
-            public JsonComparision(JsonComparerOptions options, JsonDocument baseJsonDocument,
-                JsonDocument otherJsonDocument)
+            public JsonComparision(JsonComparerOptions options, JsonDocument baseJsonDocument, JsonDocument otherJsonDocument)
             {
+                PatchList = new PatchList(baseJsonDocument, otherJsonDocument);
                 _options = options;
                 _elementQueue.Push((baseJsonDocument.RootElement, otherJsonDocument.RootElement, JsonPath.WholeDocument));
             }
 
-            public PatchList PatchList { get; } = new();
+            public PatchList PatchList { get; }
 
             public void Execute()
             {
